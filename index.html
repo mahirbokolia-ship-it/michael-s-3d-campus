@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NotebookLM - Teacher Assistant (Classes 6-10)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', sans-serif; }
+    .gradient-text { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .glass { backdrop-filter: blur(20px); background: rgba(255,255,255,0.25); }
+    @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+    .float { animation: float 3s ease-in-out infinite; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen p-4 md:p-8">
+  
+  <!-- Header -->
+  <div class="max-w-7xl mx-auto mb-12">
+    <div class="text-center">
+      <div class="inline-flex items-center gap-4 bg-white/80 glass rounded-3xl px-8 py-6 shadow-2xl border border-white/50">
+        <div class="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-2xl">
+          📓
+        </div>
+        <div>
+          <h1 class="text-4xl md:text-5xl font-black gradient-text mb-2">
+            NotebookLM
+          </h1>
+          <p class="text-xl text-slate-600 font-medium">Classes 6-10 • Session 2026-27</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto grid lg:grid-cols-3 gap-8">
+    
+    <!-- Left Sidebar -->
+    <div class="lg:col-span-1 space-y-6">
+      
+      <!-- Sources -->
+      <div id="sources-panel" class="bg-white/70 glass rounded-3xl shadow-xl border p-6 hidden">
+        <h3 class="font-bold text-xl mb-4 flex items-center gap-2 text-slate-800">
+          <i class="fas fa-file-pdf text-red-500"></i>
+          Sources <span id="source-count" class="ml-2 bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full text-sm font-medium">(0)</span>
+        </h3>
+        <div id="sources-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
+      </div>
+
+      <!-- Upload Area -->
+      <div id="upload-panel" class="bg-white/70 glass rounded-3xl shadow-xl border p-8 cursor-pointer hover:shadow-2xl transition-all group">
+        <div class="text-center">
+          <div class="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform float">
+            <i class="fas fa-cloud-upload-alt text-2xl text-indigo-500"></i>
+          </div>
+          <h3 class="text-2xl font-bold text-slate-800 mb-3 group-hover:text-indigo-600 transition-colors">Upload PDF Chapter</h3>
+          <p class="text-slate-600 mb-6 text-lg">Drop your textbook chapter. AI will generate everything automatically.</p>
+          <input type="file" id="pdf-upload" accept=".pdf" class="hidden">
+          <button onclick="handleUpload()" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white py-4 px-8 rounded-2xl font-semibold shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+            <i class="fas fa-magic mr-2"></i>Generate Notebook ✨
+          </button>
+        </div>
+      </div>
+
+      <!-- Notebook Tabs -->
+      <div id="tabs-panel" class="bg-white/70 glass rounded-3xl shadow-xl border p-6 hidden">
+        <h3 class="font-bold text-xl mb-6 text-slate-800 flex items-center gap-2">
+          <i class="fas fa-book-open text-indigo-500"></i>Notebook
+        </h3>
+        <div class="space-y-2">
+          <button data-tab="overview" class="notebook-tab w-full flex items-center gap-3 p-4 rounded-2xl transition-all group hover:bg-slate-100 text-slate-700 font-medium tab-active:bg-gradient-to-r tab-active:from-indigo-500 tab-active:to-purple-500 tab-active:text-white">
+            <span class="text-xl">🎧</span> Audio Overview
+          </button>
+          <button data-tab="study-guide" class="notebook-tab w-full flex items-center gap-3 p-4 rounded-2xl transition-all group hover:bg-slate-100 text-slate-700">
+            <span class="text-xl">📚</span> Study Guide
+          </button>
+          <button data-tab="faq" class="notebook-tab w-full flex items-center gap-3 p-4 rounded-2xl transition-all group hover:bg-slate-100 text-slate-700">
+            <span class="text-xl">❓</span> FAQ
+          </button>
+          <button data-tab="timeline" class="notebook-tab w-full flex items-center gap-3 p-4 rounded-2xl transition-all group hover:bg-slate-100 text-slate-700">
+            <span class="text-xl">📅</span> Timeline
+          </button>
+          <button data-tab="chat" class="notebook-tab w-full flex items-center gap-3 p-4 rounded-2xl transition-all group hover:bg-slate-100 text-slate-700">
+            <span class="text-xl">💬</span> Ask AI
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="lg:col-span-2 space-y-6">
+      
+      <!-- Audio Controls -->
+      <div id="audio-controls" class="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 glass rounded-3xl p-6 border hidden flex items-center gap-4">
+        <button onclick="generateAudio()" class="flex items-center gap-3 bg-white/30 hover:bg-white/50 glass px-6 py-3 rounded-2xl font-semibold transition-all border border-white/30">
+          <i class="fas fa-play-circle w-5 h-5"></i>
+          Play Audio Overview
+        </button>
+        <div class="flex-1 bg-white/50 rounded-full h-2 mx-6">
+          <div id="audio-progress" class="bg-indigo-400 h-2 rounded-full w-0 transition-all"></div>
+        </div>
+        <button onclick="toggleVoice()" class="p-3 bg-white/30 hover:bg-white/50 rounded-2xl border border-white/30">
+          <i id="mic-icon" class="fas fa-microphone text-xl"></i>
+        </button>
+      </div>
+
+      <!-- Tab Contents -->
+      <div id="tab-contents" class="bg-white/70 glass rounded-3xl shadow-xl border p-8 min-h-[600px] hidden">
+        <div id="overview-content" class="tab-content hidden">
+          <div class="text-center py-20">
+            <i class="fas fa-podcast text-6xl text-indigo-500 mb-6"></i>
+            <h2 class="text-3xl font-bold text-slate-800 mb-4">Audio Overview Ready!</h2>
+            <p class="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">Click "Play Audio Overview" above to hear two teachers discussing this chapter like a podcast.</p>
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-4 rounded-2xl inline-block font-semibold cursor-pointer hover:shadow-2xl transform hover:scale-105 transition-all">
+              <i class="fas fa-volume-up mr-2"></i> Listen Now
+            </div>
+          </div>
+        </div>
+
+        <div id="study-guide-content" class="tab-content hidden">
+          <h2 class="text-3xl font-bold text-slate-800 mb-8 flex items-center gap-3">
+            <i class="fas fa-book-reader text-indigo-500"></i>Study Guide
+          </h2>
+          <div id="study-guide" class="space-y-6 prose prose-lg max-w-none">
+            <!-- AI Generated -->
+          </div>
+        </div>
+
+        <div id="faq-content" class="tab-content hidden">
+          <h2 class="text-3xl font-bold text-slate-800 mb-8 flex items-center gap-3">
+            <i class="fas fa-question-circle text-purple-500"></i>FAQ
+          </h2>
+          <div id="faq-list" class="space-y-4">
+            <!-- AI Generated -->
+          </div>
+        </div>
+
+        <div id="timeline-content" class="tab-content hidden">
+          <h2 class="text-3xl font-bold text-slate-800 mb-8 flex items-center gap-3">
+            <i class="fas fa-timeline text-green-500"></i>Timeline
+          </h2>
+          <div id="timeline-list" class="space-y-4">
+            <!-- AI Generated -->
+          </div>
+        </div>
+
+        <div id="chat-content" class="tab-content hidden">
+          <h2 class="text-3xl font-bold text-slate-800 mb-8 flex items-center gap-3">
+            <i class="fas fa-comments text-pink-500"></i>AI Chat
+          </h2>
+          <div id="chat-messages" class="bg-slate-50 rounded-2xl p-6 h-96 overflow-y-auto space-y-4 mb-6"></div>
+          <div class="flex gap-3">
+            <input id="chat-input" type="text" placeholder="Ask anything about this chapter..." class="flex-1 p-4 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+            <button onclick="sendChat()" class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-4 rounded-2xl font-semibold hover:shadow-xl transition-all">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global state
+    let notebookData = null;
+    let isListening = false;
+    let recognition = null;
+    let chatHistory = [];
+
+    // Simulate PDF processing and AI generation
+    async function handleUpload() {
+      const fileInput = document.getElementById('pdf-upload');
+      const file = fileInput.files[0];
+      
+      if (!file) {
+        alert('Please select a PDF file');
+        return;
+      }
+
+      // Show loading
+      document.getElementById('upload-panel').innerHTML = `
+        <div class="text-center py-12">
+          <div class="w-20 h-20 border-4 border-indigo-200 border-t-indigo-500 rounded-full animate-spin mx-auto mb-6"></div>
+          <h3 class="text-2xl font-bold text-slate-800 mb-2">Generating Notebook...</h3>
+          <p class="text-slate-600">AI is analyzing your PDF (30 seconds)</p>
+          <div class="w-full bg-slate-200 rounded-full h-2 mt-6">
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded-full animate-pulse" style="width: 60%"></div>
+          </div>
+        </div>
+      `;
+
+      // Simulate processing delay
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Generate mock notebook data (in real app, use OpenAI API)
+      notebookData = generateMockNotebook(file.name);
+      
+      // Update UI
+      showNotebookUI();
+      generateStudyGuide();
+      generateFAQ();
+      generateTimeline();
+    }
+
+    function generateMockNotebook(filename) {
+      return {
+        title: filename.replace('.pdf', ''),
+        sources: [filename],
+        content: 'This is the extracted content from your PDF chapter...',
+        studyGuide: [
+          '• Key Concept 1: Detailed explanation...',
+          '• Key Concept 2: Important formulas...',
+          '• Key Concept 3: Historical background...',
+          '• Key Concept 4: Practical applications...',
+          '• Key Concept 5: Common mistakes to avoid...'
+        ],
+        faq: [
+          { q: 'What is the main topic?', a: 'The chapter covers...' },
+          { q: 'Why is this important?', a: 'It helps students understand...' },
+          { q: 'What are the key formulas?', a: '1. Formula 1\n2. Formula 2...' }
+        ],
+        timeline: [
+          '📅 1800: Discovery made',
+          '📅 1900: Theory developed',
+          '📅 2000: Modern applications'
+        ]
+      };
+    }
+
+    function showNotebookUI() {
+      document.getElementById('upload-panel').style.display = 'none';
+      document.getElementById('sources-panel').classList.remove('hidden');
+      document.getElementById('tabs-panel').classList.remove('hidden');
+      document.getElementById('audio-controls').classList.remove('hidden');
+      document.getElementById('tab-contents').classList.remove('hidden');
+      
+      // Update source count
+      document.getElementById('source-count').textContent = `(1)`;
+      document.getElementById('sources-list').innerHTML = `
+        <div class="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl text-sm border-r-4 border-indigo-500 font-medium">
+          ${notebookData.title}
+        </div>
+      `;
+    }
+
+    function generateStudyGuide() {
+      document.getElementById('study-guide').innerHTML = `
+        <div class="grid md:grid-cols-2 gap-6">
+          ${notebookData.studyGuide.map(point => `
+            <div class="bg-gradient-to-br from-slate-50 to-indigo-50 p-6 rounded-2xl border-l-4 border-indigo-500 hover:shadow-md transition-all">
+              <div class="font-semibold text-lg text-slate-800 mb-3">${point.split(':')[0]}</div>
+              <p class="text-slate-700 leading-relaxed">${point.split(':')[1] || point}</p>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function generateFAQ() {
+      document.getElementById('faq-list').innerHTML = notebookData.faq.map((item, i) => `
+        <div class="bg-white hover:bg-slate-50 p-6 rounded-2xl shadow-sm border hover:border-indigo-200 transition-all group cursor-pointer">
+          <div class="font-semibold text-xl text-slate-800 mb-3 group-hover:text-indigo-600">${item.q}</div>
+          <div class="text-slate-700 leading-relaxed">${item.a}</div>
+        </div>
+      `).join('');
+    }
+
+    function generateTimeline() {
+      document.getElementById('timeline-list').innerHTML = notebookData.timeline.map(item => `
+        <div class="flex items-start gap-4 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border hover:shadow-md transition-all">
+          <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center font-bold text-green-600 text-lg flex-shrink-0 mt-1">
+            📅
+          </div>
+          <div>
+            <p class="font-semibold text-slate-800">${item}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Tab switching
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('notebook-tab')) {
+        document.querySelectorAll('.notebook-tab').forEach(btn => btn.classList.remove('bg-gradient-to-r', 'from-indigo-500', 'to-purple-500', 'text-white'));
+        e.target.classList.add('bg-gradient-to-r', 'from-indigo-500', 'to-purple-500', 'text-white');
+        
+        const tabId = e.target.dataset.tab;
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+        document.getElementById(tabId + '-content').classList.remove('hidden');
+      }
+    });
+
+    // Audio simulation
+    function generateAudio() {
+      // Simulate audio generation
+      alert('🎧 Audio Overview Generated!\n\nTwo teachers are now discussing your chapter. In full version, this creates real TTS audio.');
+      
+      // Simulate progress
+      const progress = document.getElementById('audio-progress');
+      let width = 0;
+      const interval = setInterval(() => {
+        width += 2;
+        progress.style.width = width + '%';
+        if (width >= 100) clearInterval(interval);
+      }, 100);
+    }
+
+    // Voice chat
+    function toggleVoice() {
+      if (!('webkitSpeechRecognition' in window)) {
+        alert('Voice not supported in this browser');
+        return;
+      }
+
+      const icon = document.getElementById('mic-icon');
+      if (!isListening) {
+        recognition = new (window.webkitSpeechRecognition || window.SpeechRecognition)();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-IN';
+
+        recognition.onresult = function(event) {
+          const transcript = event.results[0][0].transcript;
+          addChatMessage('You', transcript);
+          const response = generateAIResponse(transcript);
+          setTimeout(() => addChatMessage('AI', response), 1000);
+        };
+
+        recognition.start();
+        isListening = true;
+        icon.className = 'fas fa-stop text-xl';
+        icon.style.color = '#ef4444';
+      } else {
+        recognition.stop();
+        isListening = false;
+        icon.className = 'fas fa-microphone text-xl';
+        icon.style.color = '';
+      }
+    }
+
+    function addChatMessage(sender, message) {
+      chatHistory.push({ sender, message });
+      const messagesDiv = document.getElementById('chat-messages');
+      messagesDiv.innerHTML += `
+        <div class="flex ${sender === 'You' ? 'justify-end' : 'justify-start'}">
+          <div class="max-w-md p-4 rounded-2xl ${sender === 'You' ? 'bg-indigo-500 text-white' : 'bg-white shadow-lg border'}">
+            <div class="font-semibold text-sm text-indigo-100 mb-1">${sender}</div>
+            <div>${message}</div>
+          </div>
+        </div>
+      `;
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function generateAIResponse(query) {
+      const responses = [
+        "Great question! Based on the chapter, the answer is...",
+        "According to the PDF content, this concept is explained on page 3...",
+        "That's an important point. The chapter covers this in detail under section 2.1...",
+        "Excellent question for class discussion! Here's the summary..."
+      ];
+      return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    function sendChat() {
+      const input = document.getElementById('chat-input');
+      const message = input.value.trim();
+      if (!message) return;
+      
+      addChatMessage('You', message);
+      input.value = '';
+      
+      const response = generateAIResponse(message);
+      setTimeout(() => addChatMessage('AI', response), 800);
+    }
+
+    // Drag & drop
+    document.getElementById('upload-panel').addEventListener('dragover', e => {
+      e.preventDefault();
+      e.currentTarget.classList.add('bg-indigo-50');
+    });
+    
+    document.getElementById('upload-panel').addEventListener('dragleave', e => {
+      e.currentTarget.classList.remove('bg-indigo-50');
+    });
+    
+    document.getElementById('upload-panel').addEventListener('drop', e => {
+      e.preventDefault();
+      e.currentTarget.classList.remove('bg-indigo-50');
+      document.getElementById('pdf-upload').files = e.dataTransfer.files;
+      handleUpload();
+    });
+
+    // Enter key for chat
+    document.getElementById('chat-input').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') sendChat();
+    });
+
+    // Auto-select first tab
+    document.querySelector('.notebook-tab').click();
+  </script>
+</body>
+</html>
