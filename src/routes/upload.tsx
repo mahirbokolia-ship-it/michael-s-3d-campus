@@ -34,15 +34,15 @@ function UploadPage() {
   async function upload() {
     if (!file) return toast.error("Pick a PDF first");
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return toast.error("Sign in as a teacher to upload");
     setUploading(true);
     try {
-      const path = `${user.id}/${Date.now()}-${file.name}`;
+      const folder = user?.id ?? "anonymous";
+      const path = `${folder}/${Date.now()}-${file.name}`;
       const { error: upErr } = await supabase.storage.from("school-uploads").upload(path, file);
       if (upErr) throw upErr;
       const { data: { publicUrl } } = supabase.storage.from("school-uploads").getPublicUrl(path);
       const { error: dbErr } = await supabase.from("uploads").insert({
-        uploader_id: user.id, category: "notes", title: title || file.name,
+        uploader_id: user?.id ?? null, category: "notes", title: title || file.name,
         description: chapter, file_url: publicUrl, class_level: classLevel,
       });
       if (dbErr) throw dbErr;
